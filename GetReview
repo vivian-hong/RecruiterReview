@@ -2,7 +2,6 @@
 
 import sys
 import csv
-import operator
 
 def main():
 
@@ -28,7 +27,7 @@ def main():
 					trackSendouts(data, outfile)
 					csvOutput.close()
 					sortOut(checkedHeader)
-					makeSummary(summary, calcMonths(sys.argv[1]))
+					makeSummary(summary, calcMonths(sys.argv[1]), sys.argv[1])
 					print "Full Review is in parsed_report.csv. Summary is in summary.csv"
 	else:
 		sys.exit("ALERT: Usage Error - Incorrect file type. Run GetReview with [-h] for proper command syntax.")
@@ -106,7 +105,7 @@ def sortOut(checkedHeader):
 			outfile.writerow(row) # writing sorted list
 
 # writes summary file
-def makeSummary(summary, months):
+def makeSummary(summary, months, filename):
 
 	recruiter = "No One"
 	iCount = 0
@@ -133,7 +132,7 @@ def makeSummary(summary, months):
 					sCount +=1
 			else: 
 				# creating summary for one recruiter
-				calcRequirements(summary, months, recruiter, iCount, sCount)
+				calcRequirements(summary, months, recruiter, iCount, sCount, filename)
 				# starting new recruiter 
 				recruiter = row[0]
 				if row[1] == ("Moved to stage Screened"):
@@ -143,13 +142,14 @@ def makeSummary(summary, months):
 					sCount =1
 					iCount = 0
 		#last recruiter
-		calcRequirements(summary, months, recruiter, iCount, sCount)
+		calcRequirements(summary, months, recruiter, iCount, sCount, filename)
 
 # calculates completion of requirements and writes them into the summary file
-def calcRequirements(summary, months, recruiter, iCount, sCount):
+def calcRequirements(summary, months, recruiter, iCount, sCount, filename):
 
 	if months == 0: # activity report is for one week
-		if iCount//5 >= 5: 
+		numWeeks = calcWeeks(filename)
+		if iCount//(5*numWeeks) >= 5: 
 			iBool = "Completed"
 		else:
 			iBool = "Not Completed"
@@ -168,6 +168,23 @@ def calcRequirements(summary, months, recruiter, iCount, sCount):
 			sBool = "Not Completed"
 	summary.writerow([recruiter, iCount, sCount, iBool, sBool])
 
+def calcWeeks(filename):
+
+	filename = sys.argv[1]
+	initSplit = filename.split("_")
+	secSplit = initSplit[3].split(".")
+	fDate = initSplit[2] # "first date" - start date
+	sDate = secSplit[0] # "second date" - end date
+	# check if activity report is for one week
+	# built off assumptions that file is either for one week or full months
+	fSplit = fDate.split("-")
+	sSplit = sDate.split("-")
+	
+	if int(sSplit[2]) - int(fSplit[2]) + 1 <= 7:
+		return 1
+
+	return (int(sSplit[2]) - int(fSplit[2]) + 1)//7
+	
 # Standard boilerplate to call the main() function to begin
 # the program.
 if __name__ == '__main__':
