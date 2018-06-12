@@ -13,20 +13,22 @@ date: 06/01/2018
 |Use:|
 +----+
 	
-	(to use with interface, run RR executeable -- basic error handling is done)
+	(TO USE WITH INTERFACE, run RR executeable -- basic error handling is done)
 
 	1. Download Workable activity reports for each client (make sure they are in this folder)
-		- for an accurate analysis of recruiter requirements, make sure that these are reports
-		  for the same span of time
+		- for an accurate analysis of recruiter requirements, make sure 
+		  that these are reports for the same span of time
 	2. Run ListMerge on all activity reports: ./ListMerge [file1] [file2] [...]
-		- files should be in standard activity report format (i.e. correct categories in 
-		  the correct order - unaltered Workable reports already adhere to this format)
-		- the filename for the new file (containing all activity across clients) should use 
-		  the same naming format as Workable reports- activity_report_YYYY-MM-DD_YYYY-MM-DD.csv
+		- files should be in standard activity report format (i.e. correct 
+		  categories in the correct order - unaltered Workable reports already 
+		  adhere to this format)
+		- the filename for the new file (containing all activity across clients) 
+		  should use the same naming format as Workable reports:
+		  	activity_report_YYYY-MM-DD_YYYY-MM-DD.csv
 	3. Run GetReview on the merged acitivty file: ./GetReview [file]
 	4. Access the full report (parsed_report.csv) and summary (report_summary.csv).
 
-* Note: all files (used in either program) should copied into RecruiterReview folder before beginning
+* Note: all files (used in either program) should copied into RecruiterReview folder first
 
 +-----------------+
 |Alterative Usage:|
@@ -77,8 +79,9 @@ Input:
 		(this can be changed if necessary, by altering header.csv)
 
 	- Please keep the csv name consistent with Workable activity report naming
-	- For an accurate summary report requirement calculation, please make sure (1) the span of time is either one week or 
-	  a few months and (2) the .csv file contains merged data from the same span of time
+	- For an accurate summary report requirement calculation, please make sure (1) the 
+	  span of time is either one week or a few months and (2) the .csv file contains 
+	  merged data from the same span of time
 
 * there is a file included in this folder called "header.csv" which can be altered if
   the categories need to be changed
@@ -92,8 +95,8 @@ Output:
 						 	- 5 interviews per day
 						 	- 5 sendouts per week
 					   - does not discount holidays or vacation time
-					   - for accurate report, activity report file needs to contain each client
-					     for the same span of time
+					   - for accurate report, activity report file needs to 
+					     contain each client for the same span of time
 
 
 run: ./GetReview
