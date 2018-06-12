@@ -55,7 +55,7 @@ class ListMerge(Page):
 			button.pack()
    			return 0
 
-   		if int(self.entry.get()) == 1:
+   		if int(self.entry.get()) <= 1:
 			top = Toplevel()
 			top.wm_geometry("200x100")
 			top.title("Usage Error")
@@ -261,7 +261,7 @@ class Both(Page):
 			button = Button(top, text="Dismiss", command=top.destroy)
 			button.pack()
    			return 0
-   		if int(self.entry.get()) == 1:
+   		if int(self.entry.get()) <= 1:
 			top = Toplevel()
 			top.wm_geometry("200x100")
 			top.title("Usage Error")
