@@ -4,6 +4,8 @@ from Tkinter import *
 import tkFileDialog
 import os
 
+# needs more optomization 
+
 class Page(Frame):
 	def __init__(self, *args, **kwargs):
 		Frame.__init__(self, *args, **kwargs)
@@ -52,6 +54,18 @@ class ListMerge(Page):
 			button = Button(top, text="Dismiss", command=top.destroy)
 			button.pack()
    			return 0
+
+   		if int(self.entry.get()) == 1:
+			top = Toplevel()
+			top.wm_geometry("200x100")
+			top.title("Usage Error")
+
+			msg = Message(top, text="Two or more files are required.")
+			msg.pack()
+
+			button = Button(top, text="Dismiss", command=top.destroy)
+			button.pack()
+   			return 
 
    		counter = 0
    		self.input_files = tkFileDialog.askopenfilenames(parent=root,title='Choose a file')
@@ -242,6 +256,17 @@ class Both(Page):
 			top.title("Usage Error")
 
 			msg = Message(top, text="Please enter a number.")
+			msg.pack()
+
+			button = Button(top, text="Dismiss", command=top.destroy)
+			button.pack()
+   			return 0
+   		if int(self.entry.get()) == 1:
+			top = Toplevel()
+			top.wm_geometry("200x100")
+			top.title("Usage Error")
+
+			msg = Message(top, text="Two or more files are required.")
 			msg.pack()
 
 			button = Button(top, text="Dismiss", command=top.destroy)
