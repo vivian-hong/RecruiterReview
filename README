@@ -1,0 +1,99 @@
+README for RecruiterReview - A program that evaluates recruiter productivity from Workable Activity Reports
+
+Written for ITA
+
+by: Vivian Hong
+date: 06/01/2018
+
+
+	- RUN WITH VALGRIND FOR MEM LEAKS
+	- further testing needs to be done for all 
+
++----+
+|Use:|
++----+
+	
+	(to use with interface, run RR executeable -- basic error handling is done)
+
+	1. Download Workable activity reports for each client (make sure they are in this folder)
+		- for an accurate analysis of recruiter requirements, make sure that these are reports
+		  for the same span of time
+	2. Run ListMerge on all activity reports: ./ListMerge [file1] [file2] [...]
+		- files should be in standard activity report format (i.e. correct categories in 
+		  the correct order - unaltered Workable reports already adhere to this format)
+		- the filename for the new file (containing all activity across clients) should use 
+		  the same naming format as Workable reports- activity_report_YYYY-MM-DD_YYYY-MM-DD.csv
+	3. Run GetReview on the merged acitivty file: ./GetReview [file]
+	4. Access the full report (parsed_report.csv) and summary (report_summary.csv).
+
+* Note: all files (used in either program) should copied into RecruiterReview folder before beginning
+
++-----------------+
+|Alterative Usage:|
++-----------------+
+
+	(NOT recommended -- helpful for getting familiar with commandline)
+
+	Command prompt led usage. Allows for execution of both programs. 
+	Run ./Easy and follow command prompts.
+	- worse error handling
+	- more cumbersome
+	- functionality/mobility needs to be added
+
+------------------------------------------ Details ---------------------------------------------
+
+ListMerge
+---------
+
+Input:
+	- This program is meant to be used on activity report csv files with categories:
+		- Name
+		- Activity
+		- Candidate
+		- Job
+		- Creation time
+		(this can be changed if necessary, by altering header.csv)
+Output:
+	- A .csv file that contains all the data from each activity report
+
+run: ./ListMerge
+
+GetReview
+---------
+Additional necessary improvements include:
+	- making more universal functions/variables
+	- clear commenting
+	- valgrind check
+	- optomize
+	- ask for input instead of flag usage- or parse csv file name (this is done)
+
+Input: 
+	- This program is meant to be used on activity report csv files with categories:
+		- Name
+		- Activity
+		- Candidate
+		- Job
+		- Creation time
+		(this can be changed if necessary, by altering header.csv)
+
+	- Please keep the csv name consistent with Workable activity report naming
+	- For an accurate summary report requirement calculation, please make sure (1) the span of time is either one week or 
+	  a few months and (2) the .csv file contains merged data from the same span of time
+
+* there is a file included in this folder called "header.csv" which can be altered if
+  the categories need to be changed
+
+Output:
+
+	parsed_report.csv - report containing every interview and sendout with details, sorted 
+						by person and job title
+	report_summary.csv - summary containing total interviews, sendouts, and completion of
+						 requirements:
+						 	- 5 interviews per day
+						 	- 5 sendouts per week
+					   - does not discount holidays or vacation time
+					   - for accurate report, activity report file needs to contain each client
+					     for the same span of time
+
+
+run: ./GetReview

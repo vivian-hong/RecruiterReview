@@ -1,0 +1,174 @@
+#!/usr/bin/env python
+
+import sys
+import csv
+import operator
+
+def main():
+
+	# checks correct number of arguments
+	if len(sys.argv) != 2:
+		sys.exit("ALERT: Usage Error - Incorrect number of arguments. Run GetReview with [-h] to see proper command syntax.")
+	# help option
+	elif sys.argv[1] == "-h":
+		print " Correct usage: ./GetReivew [foo.csv]"
+		print " * Note: csv file should be a Workable Activity Report, refer to README for details"
+	# checks for correct filetype
+	elif sys.argv[1].endswith('.csv'):
+		with open(sys.argv[1], 'r') as csvInput:
+			report = csv.reader(csvInput) # for reading in activity report
+			header = next(report) # getting first line of activity report
+			data = list(report)
+			checkedHeader = checkCategories(header)
+			if checkedHeader != 0:
+				with open('parsed_report.csv', 'w') as csvOutput, open('report_summary.csv', 'w') as csvSummary:
+					outfile = csv.writer(csvOutput) # fully parsed report will end up here
+					summary = csv.writer(csvSummary)
+					trackInterviews(data, outfile)
+					trackSendouts(data, outfile)
+					csvOutput.close()
+					sortOut(checkedHeader)
+					makeSummary(summary, calcMonths(sys.argv[1]))
+					print "Full Review is in parsed_report.csv. Summary is in summary.csv"
+	else:
+		sys.exit("ALERT: Usage Error - Incorrect file type. Run GetReview with [-h] for proper command syntax.")
+	sys.exit(0)
+
+# checks that activity report has expected categories
+def checkCategories(header):
+
+	with open('header.csv', 'r') as toMatch:
+		match = csv.reader(toMatch)
+		correctHeader = next(match)
+	if header != correctHeader:
+		sys.exit("ALERT: Usage Error - Incorrect csv file format. Run with [-h] for proper usage instructions.")
+	return correctHeader
+
+# calculates the time span of the report
+def calcMonths(filename):
+
+	filename = sys.argv[1]
+	initSplit = filename.split("_")
+	secSplit = initSplit[3].split(".")
+	fDate = initSplit[2] # "first date" - start date
+	sDate = secSplit[0] # "second date" - end date
+	# check if activity report is for one week
+	# built off assumptions that file is either for one week or full months
+	fSplit = fDate.split("-")
+	sSplit = sDate.split("-")
+	if (int(sSplit[0]) - int(fSplit[0])) == 0: # in the same year
+		if sSplit[1] == fSplit[1]: # in the same month
+			if int(fSplit[2]) == 1 and (int(sSplit[2]) == 28 or int(sSplit[2]) == 29 or int(sSplit[2]) == 30 or int(sSplit[2]) == 31):
+				return 1 
+			else:
+				return 0
+		elif (int(sSplit[1]) - int(fSplit[1])) == 1: # in consecutive months
+			if (int(sSplit[2]) > 24) and (int(fSplit[2]) < 7):
+				return 0
+	elif (int(sSplit[0]) - int(fSplit[0])) == 1: # in consecutive years
+		if (int(sSplit[1]) == 1) and (int(fSplit[1]) == 12) and (int(sSplit[2]) > 24) and (int(fSplit[2]) < 7):
+			return 0 
+	# activity report is for 1+ months
+	years = ((int(sSplit[0])-int(fSplit[0])-1)*12)
+	if years == -1:
+		years = 0
+	fMonths = (12-int(fSplit[1]))
+	lMonths = (int(sSplit[1]) - 1)
+	return (years + fMonths + lMonths)
+
+# writes each interviewed candidate into parsed_report.csv
+def trackInterviews(report, outfile):	
+
+	for row in report:
+		for field in row:
+			if (field == "Moved to stage Screened"):
+				outfile.writerow(row)
+
+# writes each send-out candidate into parsed_report.csv
+def trackSendouts(report, outfile):
+
+	for row in report:
+		for field in row:
+			if field == "Moved to stage Interview":
+				outfile.writerow(row)
+
+# sorts parsed_report.csv by recruiter and position
+def sortOut(checkedHeader):
+
+	with open('parsed_report.csv', 'r') as csvOut:
+		reader = csv.reader(csvOut)
+		sortedList = sorted(reader, key=lambda row: (row[0], row[3])) # sorting list
+	csvOut.close()
+	with open('parsed_report.csv', 'w') as csvOutput:
+		outfile = csv.writer(csvOutput)
+		outfile.writerow(checkedHeader) # writing categories
+		for row in sortedList:
+			outfile.writerow(row) # writing sorted list
+
+# writes summary file
+def makeSummary(summary, months):
+
+	recruiter = "No One"
+	iCount = 0
+	sCount = 0
+
+	# creating categories
+	summary.writerow(['Name', 'Number of Interviews', 'Number of Send-outs', 'Interview Requirement', 'Send-out Requirement'])
+	
+	with open('parsed_report.csv', 'r') as parsedReport:
+		report = csv.reader(parsedReport)
+		next(report) # header
+		first = next(report) # first line
+		# first recruiter
+		recruiter = first[0]
+		if (first[1] == "Moved to stage Screened"):
+			iCount += 1
+		else:
+			sCount += 1
+		for row in report:
+			if row[0] == recruiter: # checking if recording for same recruiter
+				if (row[1] == "Moved to stage Screened"): # interview
+					iCount += 1
+				if row[1] == "Moved to stage Interview": # send-out
+					sCount +=1
+			else: 
+				# creating summary for one recruiter
+				calcRequirements(summary, months, recruiter, iCount, sCount)
+				# starting new recruiter 
+				recruiter = row[0]
+				if row[1] == ("Moved to stage Screened"):
+					iCount = 1
+					sCount = 0
+				if row[1] == "Moved to stage Interview":
+					sCount =1
+					iCount = 0
+		#last recruiter
+		calcRequirements(summary, months, recruiter, iCount, sCount)
+
+# calculates completion of requirements and writes them into the summary file
+def calcRequirements(summary, months, recruiter, iCount, sCount):
+
+	if months == 0: # activity report is for one week
+		if iCount//5 >= 5: 
+			iBool = "Completed"
+		else:
+			iBool = "Not Completed"
+		sBool = "N/A"
+	else:
+		weeks = months * int('4') 
+		# five interviews per week required
+		if iCount//weeks >= 5:
+			iBool = "Completed"
+		if iCount//weeks < 5:
+			iBool = "Not Completed"
+		# five send-outs per month required
+		if sCount//months >= 5:
+			sBool = "Completed"
+		if sCount//months < 5:
+			sBool = "Not Completed"
+	summary.writerow([recruiter, iCount, sCount, iBool, sBool])
+
+# Standard boilerplate to call the main() function to begin
+# the program.
+if __name__ == '__main__':
+	main()
