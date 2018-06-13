@@ -81,19 +81,29 @@ class ListMerge(Page):
 	  	counter  = 0
 	  	global final #make part of self
 	  	final = ""
+	  	to_print = ""
 	  	while counter < int(self.entry.get()):
+	  		# add property where files dont have to be in local folder
+	  		# do this by removing User/vivianhong and adding ~ before "/"
 	  		remove = files[counter].split('/')
-	  		if not (os.path.isfile(remove[len(remove) - 1])):
+	  		currentFile = "~/"
+	  		for i in range (3, len(remove) - 1):
+	  			currentFile += remove[i] + "/"
+	  			print currentFile
+	  		currentFile += remove[len(remove) - 1]
+	  
+	  		if not (os.path.isfile(files[counter])):
 	  		  	top = Toplevel()
 				top.wm_geometry("200x100")
 				top.title("Usage Error")
 
-				msg = Message(top, text="File does not exist in this folder.")
+				msg = Message(top, text="File does not exist.")
 				msg.pack()
 
 				button = Button(top, text="Dismiss", command=top.destroy)
 				button.pack()
 	  			return 0
+
 	  		if not (remove[len(remove) - 1].endswith('.csv')):
 	  		  	top = Toplevel()
 				top.wm_geometry("200x100")
@@ -105,10 +115,11 @@ class ListMerge(Page):
 				button = Button(top, text="Dismiss", command=top.destroy)
 				button.pack()
 	  			return 0
-	  		final += remove[len(remove) - 1] + ' '
+	  		final += currentFile + ' '
+	  		to_print += remove[len(remove) - 1] + ' '
 	  		counter += 1
 	  	self.entry.delete(0, 'end') #remove
-	  	print_files = Label(self, text=final, wraplength = 400)
+	  	print_files = Label(self, text=to_print, wraplength = 400)
 	  	print_files.pack(side="top", fill="both", expand=False)
 	  	self.button = Button(self, text="Next", width=10, command=self.newFilename)
 	  	self.button.pack(side="top", expand=False)
@@ -180,9 +191,27 @@ class GetReview(Page):
 
 	  	input_file = ' '.join(input_file)
 	  	remove = input_file.split('/')
-	  	final = remove[len(remove) - 1]
+	  	# add csv check and file merge functionality
+	  	if not (remove[len(remove) - 1].endswith('.csv')):
+	  		  	top = Toplevel()
+				top.wm_geometry("200x100")
+				top.title("Usage Error")
 
-	  	if not (os.path.isfile(final)):
+				msg = Message(top, text="Please only use csv files.")
+				msg.pack()
+
+				button = Button(top, text="Dismiss", command=top.destroy)
+				button.pack()
+	  			return 0
+
+	  	final = "~/"
+  		for i in range (3, len(remove) - 1):
+  			final += remove[i] + "/"
+  			print final
+  		final += remove[len(remove) - 1]
+  		print final
+
+	  	if not (os.path.isfile(input_file)):
   			top = Toplevel()
 			top.wm_geometry("200x100")
 			top.title("Usage Error")
@@ -193,8 +222,9 @@ class GetReview(Page):
 			button = Button(top, text="Dismiss", command=top.destroy)
 			button.pack()
 	  		return 0
+
   		while True:
-			filename = final
+			filename = remove[len(remove) - 1]
 			test = filename.split("_")
 			if len(test) == 4 and test[0] == "activity" and test[1] == "report":
 				initSplit = test[3].split(".")
@@ -287,8 +317,29 @@ class Both(Page):
 	  	counter  = 0
 	  	global final #make part of self
 	  	final = ""
+	  	to_print = ""
 	  	while counter < int(self.entry.get()):
+	  		# add property where files dont have to be in local folder
+	  		# do this by removing User/vivianhong and adding ~ before "/"
 	  		remove = files[counter].split('/')
+	  		currentFile = "~/"
+	  		for i in range (3, len(remove) - 1):
+	  			currentFile += remove[i] + "/"
+	  			print currentFile
+	  		currentFile += remove[len(remove) - 1]
+	  
+	  		if not (os.path.isfile(files[counter])):
+	  		  	top = Toplevel()
+				top.wm_geometry("200x100")
+				top.title("Usage Error")
+
+				msg = Message(top, text="File does not exist.")
+				msg.pack()
+
+				button = Button(top, text="Dismiss", command=top.destroy)
+				button.pack()
+	  			return 0
+
 	  		if not (remove[len(remove) - 1].endswith('.csv')):
 	  		  	top = Toplevel()
 				top.wm_geometry("200x100")
@@ -300,10 +351,11 @@ class Both(Page):
 				button = Button(top, text="Dismiss", command=top.destroy)
 				button.pack()
 	  			return 0
-	  		final += remove[len(remove) - 1] + ' '
+	  		final += currentFile + ' '
+	  		to_print += remove[len(remove) - 1] + ' '
 	  		counter += 1
 	  	self.entry.delete(0, 'end') #remove
-	  	print_files = Label(self, text=final, wraplength = 400)
+	  	print_files = Label(self, text=to_print, wraplength = 400)
 	  	print_files.pack(side="top", fill="both", expand=False)
 	  	self.button = Button(self, text="Next", width=10, command=self.newFilename)
 	  	self.button.pack(side="top", expand=False)
