@@ -210,20 +210,19 @@ class GetReview(Page):
   			print final
   		final += remove[len(remove) - 1]
   		print final
-
 	  	if not (os.path.isfile(input_file)):
   			top = Toplevel()
 			top.wm_geometry("200x100")
 			top.title("Usage Error")
 
-			msg = Message(top, text="File does not exist in this folder.")
+			msg = Message(top, text="File does not exist.")
 			msg.pack()
 
 			button = Button(top, text="Dismiss", command=top.destroy)
 			button.pack()
 	  		return 0
 
-  		while True:
+		while True:
 			filename = remove[len(remove) - 1]
 			test = filename.split("_")
 			if len(test) == 4 and test[0] == "activity" and test[1] == "report":
@@ -253,7 +252,7 @@ class GetReview(Page):
 				button.pack()
 				return 0
 	  	os.system("./GetReview " + final)
-	  	print_success = Label(self, text="Success! Check out the evaluation in parsed_report.csv and report_summary.csv", wraplength = 400)
+	  	print_success = Label(self, text="Success! Check out the evaluation in WorkableOverview.csv and WorkableSummary.csv", wraplength = 400)
 	  	print_success.pack(side="top", fill="both", expand=True)
 
 
@@ -406,7 +405,7 @@ class Both(Page):
   		os.system("echo " + str(self.entry.get()) + " | ./ListMerge " + final)
   		os.system("./GetReview " + str(self.entry.get()))
   		self.entry.delete(0, 'end')
-  		print_success = Label(self, text="Success! Merged list will be in the new file that you named and evaluation will be in parsed_report.csv and report_summary.csv", wraplength = 400)
+  		print_success = Label(self, text="Success! Merged list will be in the new file that you named and evaluation will be in WorkableOverview.csv and WorkableSummary.csv", wraplength = 400)
 	  	print_success.pack(side="top", fill="both", expand=True)
 
 class MainView(Frame):

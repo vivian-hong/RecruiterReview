@@ -2,6 +2,9 @@
 
 import sys
 import csv
+import pandas as pd
+from pandas.tseries.holiday import USFederalHolidayCalendar
+from pandas.tseries.offsets import CustomBusinessDay
 
 def main():
 
@@ -14,24 +17,46 @@ def main():
 		print " * Note: csv file should be a Workable Activity Report, refer to README for details"
 	# checks for correct filetype
 	elif sys.argv[1].endswith('.csv'):
+		if not correctFilename(sys.argv[1]):
+			sys.exit(" Please make sure your input file is correctly named.")
 		with open(sys.argv[1], 'r') as csvInput:
 			report = csv.reader(csvInput) # for reading in activity report
 			header = next(report) # getting first line of activity report
 			data = list(report)
 			checkedHeader = checkCategories(header)
+			today = str(pd.datetime.today().date())
 			if checkedHeader != 0:
-				with open('parsed_report.csv', 'w') as csvOutput, open('report_summary.csv', 'w') as csvSummary:
+				with open('%s WorkableOverview.csv' %today, 'w') as csvOutput, open('%s WorkableSummary.csv' %today, 'w') as csvSummary:
 					outfile = csv.writer(csvOutput) # fully parsed report will end up here
 					summary = csv.writer(csvSummary)
 					trackInterviews(data, outfile)
 					trackSendouts(data, outfile)
-					csvOutput.close()
-					sortOut(checkedHeader)
-					makeSummary(summary, calcMonths(sys.argv[1]), sys.argv[1])
-					print "Full Review is in parsed_report.csv. Summary is in summary.csv"
+					sortOut(checkedHeader, today)
+					makeSummary(summary, sys.argv[1], today)
+					addFooter(summary, outfile, today, sys.argv[1])
+					print "Full Review is in " + today + " WorkableOverview.csv. Summary is in " + today + " WorkableSummary.csv" 
 	else:
 		sys.exit("ALERT: Usage Error - Incorrect file type. Run GetReview with [-h] for proper command syntax.")
 	sys.exit(0)
+
+def correctFilename(filename):
+	test = filename.split("_")
+	if len(test) == 4 and test[0] == "activity" and test[1] == "report":
+		initSplit = test[3].split(".")
+		if len(initSplit) == 2 and initSplit[1] == "csv":
+			fSplit = test[2].split("-")
+			sSplit = initSplit[0].split("-")
+			if len(fSplit) == 3 and len(sSplit) == 3:
+				counter = 0
+				if fSplit[0].isdigit() and len(fSplit[0]) == 4 and sSplit[0].isdigit() and len(sSplit[0]) == 4:
+					for x in range (1,3):
+						if fSplit[x].isdigit() and len(fSplit[x]) == 2:
+							counter += 1
+						if sSplit[x].isdigit() and len(sSplit[x]) == 2:
+							counter +=1
+					if counter == 4:
+						return True
+	return False
 
 # checks that activity report has expected categories
 def checkCategories(header):
@@ -42,38 +67,6 @@ def checkCategories(header):
 	if header != correctHeader:
 		sys.exit("ALERT: Usage Error - Incorrect csv file format. Run with [-h] for proper usage instructions.")
 	return correctHeader
-
-# calculates the time span of the report
-def calcMonths(filename):
-
-	filename = sys.argv[1]
-	initSplit = filename.split("_")
-	secSplit = initSplit[3].split(".")
-	fDate = initSplit[2] # "first date" - start date
-	sDate = secSplit[0] # "second date" - end date
-	# check if activity report is for one week
-	# built off assumptions that file is either for one week or full months
-	fSplit = fDate.split("-")
-	sSplit = sDate.split("-")
-	if (int(sSplit[0]) - int(fSplit[0])) == 0: # in the same year
-		if sSplit[1] == fSplit[1]: # in the same month
-			if int(fSplit[2]) == 1 and (int(sSplit[2]) == 28 or int(sSplit[2]) == 29 or int(sSplit[2]) == 30 or int(sSplit[2]) == 31):
-				return 1 
-			else:
-				return 0
-		elif (int(sSplit[1]) - int(fSplit[1])) == 1: # in consecutive months
-			if (int(sSplit[2]) > 24) and (int(fSplit[2]) < 7):
-				return 0
-	elif (int(sSplit[0]) - int(fSplit[0])) == 1: # in consecutive years
-		if (int(sSplit[1]) == 1) and (int(fSplit[1]) == 12) and (int(sSplit[2]) > 24) and (int(fSplit[2]) < 7):
-			return 0 
-	# activity report is for 1+ months
-	years = ((int(sSplit[0])-int(fSplit[0])-1)*12)
-	if years == -1:
-		years = 0
-	fMonths = (12-int(fSplit[1]))
-	lMonths = (int(sSplit[1]) - 1)
-	return (years + fMonths + lMonths)
 
 # writes each interviewed candidate into parsed_report.csv
 def trackInterviews(report, outfile):	
@@ -92,29 +85,30 @@ def trackSendouts(report, outfile):
 				outfile.writerow(row)
 
 # sorts parsed_report.csv by recruiter and position
-def sortOut(checkedHeader):
+def sortOut(checkedHeader, today):
 
-	with open('parsed_report.csv', 'r') as csvOut:
+	with open('%s WorkableOverview.csv' %today, 'r') as csvOut:
 		reader = csv.reader(csvOut)
-		sortedList = sorted(reader, key=lambda row: (row[0], row[3])) # sorting list
+		sortedList = sorted(reader, key=lambda row: (row[0], row[3], row[4])) # sorting list
 	csvOut.close()
-	with open('parsed_report.csv', 'w') as csvOutput:
+	with open('%s WorkableOverview.csv' %today, 'w') as csvOutput:
 		outfile = csv.writer(csvOutput)
 		outfile.writerow(checkedHeader) # writing categories
 		for row in sortedList:
 			outfile.writerow(row) # writing sorted list
 
 # writes summary file
-def makeSummary(summary, months, filename):
+def makeSummary(summary, filename, today):
 
 	recruiter = "No One"
 	iCount = 0
 	sCount = 0
+	bdays = calcBdays(filename)
 
 	# creating categories
-	summary.writerow(['Name', 'Number of Interviews', 'Number of Send-outs', 'Interview Requirement', 'Send-out Requirement'])
+	summary.writerow(['Name', 'Number of Interviews', 'Number of Send-outs', 'Interview Average', 'Send-out Average', 'Number of Business Days'])
 	
-	with open('parsed_report.csv', 'r') as parsedReport:
+	with open('%s WorkableOverview.csv' %today, 'r') as parsedReport:
 		report = csv.reader(parsedReport)
 		next(report) # header
 		first = next(report) # first line
@@ -132,7 +126,7 @@ def makeSummary(summary, months, filename):
 					sCount +=1
 			else: 
 				# creating summary for one recruiter
-				calcRequirements(summary, months, recruiter, iCount, sCount, filename)
+				summary.writerow([recruiter, iCount, sCount, iCount/float(bdays), sCount/float(bdays), bdays])
 				# starting new recruiter 
 				recruiter = row[0]
 				if row[1] == ("Moved to stage Screened"):
@@ -142,49 +136,33 @@ def makeSummary(summary, months, filename):
 					sCount =1
 					iCount = 0
 		#last recruiter
-		calcRequirements(summary, months, recruiter, iCount, sCount, filename)
+		summary.writerow([recruiter, iCount, sCount, iCount/float(bdays), sCount/float(bdays), bdays])
 
-# calculates completion of requirements and writes them into the summary file
-def calcRequirements(summary, months, recruiter, iCount, sCount, filename):
+def calcBdays(filename):
 
-	if months == 0: # activity report is for one week
-		numWeeks = calcWeeks(filename)
-		if iCount//(5*numWeeks) >= 5: 
-			iBool = "Completed"
-		else:
-			iBool = "Not Completed"
-		sBool = "N/A"
-	else:
-		weeks = months * int('4') 
-		# five interviews per week required
-		if iCount//weeks >= 5:
-			iBool = "Completed"
-		if iCount//weeks < 5:
-			iBool = "Not Completed"
-		# five send-outs per month required
-		if sCount//months >= 5:
-			sBool = "Completed"
-		if sCount//months < 5:
-			sBool = "Not Completed"
-	summary.writerow([recruiter, iCount, sCount, iBool, sBool])
-
-def calcWeeks(filename):
-
-	filename = sys.argv[1]
 	initSplit = filename.split("_")
 	secSplit = initSplit[3].split(".")
 	fDate = initSplit[2] # "first date" - start date
 	sDate = secSplit[0] # "second date" - end date
-	# check if activity report is for one week
-	# built off assumptions that file is either for one week or full months
-	fSplit = fDate.split("-")
-	sSplit = sDate.split("-")
-	
-	if int(sSplit[2]) - int(fSplit[2]) + 1 <= 7:
-		return 1
+	us_bd = CustomBusinessDay(calendar=USFederalHolidayCalendar())
+	return pd.DatetimeIndex(start=fDate,end=sDate, freq=us_bd).shape[0]
 
-	return (int(sSplit[2]) - int(fSplit[2]) + 1)//7
-	
+def addFooter(outfile, summary, today, filename):
+	initSplit = filename.split("_")
+	secSplit = initSplit[3].split(".")
+	fDate = initSplit[2] # "first date" - start date
+	sDate = secSplit[0] # "second date" - end date
+
+	reportRange  = "Activity Dates: " + str(fDate) + "-" + str(sDate)
+	date = "Date Ran: " + str(today)
+
+	outfile.writerow(' ')
+	outfile.writerow(['Overview', reportRange, date])
+
+	summary.writerow(' ')
+	summary.writerow(['Summary', reportRange, date])	
+
+
 # Standard boilerplate to call the main() function to begin
 # the program.
 if __name__ == '__main__':
