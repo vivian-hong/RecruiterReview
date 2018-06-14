@@ -1,0 +1,62 @@
+#!/usr/bin/env python
+
+import sys
+import csv
+import xlsxwriter
+import subprocess
+
+def main():
+
+	# if we read f.csv we will write f.xlsx
+	wb = xlsxwriter.Workbook(sys.argv[1].replace(".csv",".xlsx"))
+	ws = wb.add_worksheet(sys.argv[1].replace(".csv",""))    # your worksheet title here
+
+	# hide unused
+	ws.set_default_row(hide_unused_rows=True)
+
+	with open(sys.argv[1],'r') as csvfile:
+		table = csv.reader(csvfile)
+		# write each row from the csv file as text into the excel file
+		# this may be adjusted to use 'excel types' explicitly (see xlsxwriter doc)
+		bold = wb.add_format({'bold': True})
+		categories = next(table)
+		ws.set_column('A:A',15)
+		if len(categories) == 4:
+			ws.set_column('E:XFD', None, None, {'hidden': True})
+			ws.set_column('B:B',40)
+			ws.set_column('C:C',20)
+			ws.set_column('D:D',20)
+		if len(categories) == 5:
+			ws.set_column('F:XFD', None, None, {'hidden': True})
+			ws.set_column('B:B',20)
+			ws.set_column('C:C',15)
+			ws.set_column('D:D',30)
+			ws.set_column('E:E',25)		
+		if len(categories) == 6:
+			ws.set_column('G:XFD', None, None, {'hidden': True})
+			ws.set_column('B:B',20)
+			ws.set_column('C:C',20)
+			ws.set_column('D:D',20)
+			ws.set_column('E:E',20)	
+			ws.set_column('F:F',20)
+
+		ws.write_row(0, 0, categories, bold)
+		i = 1
+		for row in table:
+			ws.write_row(i, 0, row)
+			i += 1
+	# ITA logo as header
+	header = '&L&G'
+	ws.set_margins(top=2.3)
+
+	ws.set_header(header, {'image_left': 'ITA-logo.png'})
+
+	# last line as footer
+	last_line = subprocess.check_output(["tail", "-1", sys.argv[1]])
+	ws.set_footer(last_line)
+
+	wb.close()
+
+
+if __name__ == '__main__':
+	main()
