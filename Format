@@ -71,6 +71,7 @@ def main():
 		general_format.set_text_wrap()
 		general_format.set_bottom()
 		general_format.set_bottom_color('gray')
+		general_format.set_align('center')
 		i = 2
 		for row in table:
 			ws.write_row(i, 0, row, general_format)
