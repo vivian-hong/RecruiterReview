@@ -8,7 +8,7 @@ import subprocess
 def main():
 
 	# if we read f.csv we will write f.xlsx
-	wb = xlsxwriter.Workbook(sys.argv[1].replace(".csv",".xlsx"))
+	wb = xlsxwriter.Workbook(sys.argv[1].replace(".csv",".xlsx"), {'strings_to_numbers': True})
 	ws = wb.add_worksheet(sys.argv[1].replace(".csv",""))    # your worksheet title here
 
 	# hide unused
@@ -18,8 +18,29 @@ def main():
 		table = csv.reader(csvfile)
 		# write each row from the csv file as text into the excel file
 		# this may be adjusted to use 'excel types' explicitly (see xlsxwriter doc)
-		bold = wb.add_format({'bold': True})
+		#bold = wb.add_format({'bold': True})
+		last_line = subprocess.check_output(["tail", "-1", sys.argv[1]])
+		head = last_line.split(',')
+		head_format = wb.add_format()
+		head_format.set_align('center')
+		head_format.set_align('vcenter')
+		head_format.set_bold()
+		head_format.set_bg_color('white')
+		head_format.set_font_color('blue')
+		head_format.set_text_wrap()
+		ws.write_row(0, 0, head, head_format)
+		ws.insert_image(0, 3, 'ITA-logo.png',{'x_scale': 0.5, 'y_scale': 0.3})
+
+		categories_format = wb.add_format()
+		categories_format.set_align('center')
+		categories_format.set_align('vcenter')
+		categories_format.set_bold()
+		categories_format.set_bg_color('gray')
+		categories_format.set_top(5)
+		categories_format.set_top_color('blue')
+
 		categories = next(table)
+
 		ws.set_column('A:A',15)
 		if len(categories) == 4:
 			ws.set_column('E:XFD', None, None, {'hidden': True})
@@ -40,10 +61,19 @@ def main():
 			ws.set_column('E:E',20)	
 			ws.set_column('F:F',20)
 
-		ws.write_row(0, 0, categories, bold)
-		i = 1
+		ws.set_row(0, 50)
+		ws.set_row(1, 40)
+
+		ws.write_row(1, 0, categories, categories_format)
+
+		general_format = wb.add_format()
+		general_format.set_bg_color('white')
+		general_format.set_text_wrap()
+		general_format.set_bottom()
+		general_format.set_bottom_color('gray')
+		i = 2
 		for row in table:
-			ws.write_row(i, 0, row)
+			ws.write_row(i, 0, row, general_format)
 			i += 1
 	# ITA logo as header
 	header = '&L&G'
@@ -52,7 +82,6 @@ def main():
 	ws.set_header(header, {'image_left': 'ITA-logo.png'})
 
 	# last line as footer
-	last_line = subprocess.check_output(["tail", "-1", sys.argv[1]])
 	ws.set_footer(last_line)
 
 	wb.close()

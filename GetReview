@@ -51,7 +51,7 @@ def correctFilename(filename):
 	# parse by slash and check!!
 	splitForInterface = filename.split('/')
 	test = splitForInterface[len(splitForInterface) - 1].split("_")
-	
+
 	if len(test) == 4 and test[0] == "activity" and test[1] == "report":
 		initSplit = test[3].split(".")
 		if len(initSplit) == 2 and initSplit[1] == "csv":
@@ -113,11 +113,11 @@ def sortOut(checkedHeader, today, filename):
 		fDate = initSplit[2] # "first date" - start date
 		sDate = secSplit[0] # "second date" - end date
 
-		reportRange  = str(fDate) + "-" + str(sDate)
+		reportRange  = "Activity Dates: " + str(fDate) + "-" + str(sDate)
 		date = "Date Ran: " + str(today)
 
 		outfile.writerow(' ')
-		outfile.writerow(['Overview', 'Activity Dates: ', reportRange, date])		
+		outfile.writerow(['Overview', reportRange, date])		
 
 
 # writes summary file
@@ -167,11 +167,11 @@ def makeSummary(summary, filename, today):
 		fDate = initSplit[2] # "first date" - start date
 		sDate = secSplit[0] # "second date" - end date
 
-		reportRange  = str(fDate) + "-" + str(sDate)
+		reportRange  = "Activity Dates: " + str(fDate) + "-" + str(sDate)
 		date = "Date Ran: " + str(today)
 
 		summary.writerow(' ')
-		summary.writerow(['Summary', 'Activity Dates:', reportRange, date])
+		summary.writerow(['Summary', reportRange, date])
 
 def calcBdays(filename):
 
@@ -235,11 +235,11 @@ def makeJobProg(jobProgress, today, filename):
 		fDate = initSplit[2] # "first date" - start date
 		sDate = secSplit[0] # "second date" - end date
 
-		reportRange  = str(fDate) + "-" + str(sDate)
+		reportRange  = "Activity Dates: " + str(fDate) + "-" + str(sDate)
 		date = "Date Ran: " + str(today)
 
 		jobProgress.writerow(' ')
-		jobProgress.writerow(['Job Progress', 'Actvity Dates: ', reportRange, date])		
+		jobProgress.writerow(['Job Progress', reportRange, date])		
 
 
 # Standard boilerplate to call the main() function to begin
