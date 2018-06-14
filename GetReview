@@ -48,7 +48,10 @@ def main():
 	sys.exit(0)
 
 def correctFilename(filename):
-	test = filename.split("_")
+	# parse by slash and check!!
+	splitForInterface = filename.split('/')
+	test = splitForInterface[len(splitForInterface) - 1].split("_")
+	
 	if len(test) == 4 and test[0] == "activity" and test[1] == "report":
 		initSplit = test[3].split(".")
 		if len(initSplit) == 2 and initSplit[1] == "csv":
