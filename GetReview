@@ -2,6 +2,7 @@
 
 import sys
 import csv
+import os
 import pandas as pd
 from pandas.tseries.holiday import USFederalHolidayCalendar
 from pandas.tseries.offsets import CustomBusinessDay
@@ -26,15 +27,22 @@ def main():
 			checkedHeader = checkCategories(header)
 			today = str(pd.datetime.today().date())
 			if checkedHeader != 0:
-				with open('%s WorkableOverview.csv' %today, 'w') as csvOutput, open('%s WorkableSummary.csv' %today, 'w') as csvSummary:
+				with open('%s WorkableOverview.csv' %today, 'w') as csvOutput, open('%s WorkableSummary.csv' %today, 'w') as csvSummary, open('%s WorkableJobProgress.csv' %today, 'w') as csvJobProgress:
 					outfile = csv.writer(csvOutput) # fully parsed report will end up here
 					summary = csv.writer(csvSummary)
+					jobProgress = csv.writer(csvJobProgress)
 					trackInterviews(data, outfile)
 					trackSendouts(data, outfile)
-					sortOut(checkedHeader, today)
+					csvOutput.close()
+					sortOut(checkedHeader, today, sys.argv[1])
 					makeSummary(summary, sys.argv[1], today)
-					addFooter(summary, outfile, today, sys.argv[1])
-					print "Full Review is in " + today + " WorkableOverview.csv. Summary is in " + today + " WorkableSummary.csv" 
+					csvSummary.close()
+					makeJobProg(jobProgress, today, sys.argv[1])
+					csvJobProgress.close()
+					os.system("./Format " + today + "\ WorkableOverview.csv")
+					os.system("./Format " + today + "\ WorkableSummary.csv")
+					os.system("./Format " + today + "\ WorkableJobProgress.csv")
+					print "Full Review is in " + today + " WorkableOverview.csv. Summary is in " + today + " WorkableSummary.csv. Job Progress is in " + today + " WorkableJobProgress.csv. Formated files are in their .xlsx counterparts!" 
 	else:
 		sys.exit("ALERT: Usage Error - Incorrect file type. Run GetReview with [-h] for proper command syntax.")
 	sys.exit(0)
@@ -85,7 +93,7 @@ def trackSendouts(report, outfile):
 				outfile.writerow(row)
 
 # sorts parsed_report.csv by recruiter and position
-def sortOut(checkedHeader, today):
+def sortOut(checkedHeader, today, filename):
 
 	with open('%s WorkableOverview.csv' %today, 'r') as csvOut:
 		reader = csv.reader(csvOut)
@@ -96,6 +104,18 @@ def sortOut(checkedHeader, today):
 		outfile.writerow(checkedHeader) # writing categories
 		for row in sortedList:
 			outfile.writerow(row) # writing sorted list
+
+		initSplit = filename.split("_")
+		secSplit = initSplit[3].split(".")
+		fDate = initSplit[2] # "first date" - start date
+		sDate = secSplit[0] # "second date" - end date
+
+		reportRange  = str(fDate) + "-" + str(sDate)
+		date = "Date Ran: " + str(today)
+
+		outfile.writerow(' ')
+		outfile.writerow(['Overview', 'Activity Dates: ', reportRange, date])		
+
 
 # writes summary file
 def makeSummary(summary, filename, today):
@@ -119,14 +139,17 @@ def makeSummary(summary, filename, today):
 		else:
 			sCount += 1
 		for row in report:
-			if row[0] == recruiter: # checking if recording for same recruiter
+			if row[0] == " ":
+				summary.writerow([recruiter, iCount, sCount, round(iCount/float(bdays), 1), round(sCount/float(bdays), 1), bdays])
+				break
+			elif row[0] == recruiter: # checking if recording for same recruiter
 				if (row[1] == "Moved to stage Screened"): # interview
 					iCount += 1
 				if row[1] == "Moved to stage Interview": # send-out
 					sCount +=1
 			else: 
 				# creating summary for one recruiter
-				summary.writerow([recruiter, iCount, sCount, iCount/float(bdays), sCount/float(bdays), bdays])
+				summary.writerow([recruiter, iCount, sCount, round(iCount/float(bdays), 1), round(sCount/float(bdays), 1), bdays])
 				# starting new recruiter 
 				recruiter = row[0]
 				if row[1] == ("Moved to stage Screened"):
@@ -135,8 +158,17 @@ def makeSummary(summary, filename, today):
 				if row[1] == "Moved to stage Interview":
 					sCount =1
 					iCount = 0
-		#last recruiter
-		summary.writerow([recruiter, iCount, sCount, iCount/float(bdays), sCount/float(bdays), bdays])
+
+		initSplit = filename.split("_")
+		secSplit = initSplit[3].split(".")
+		fDate = initSplit[2] # "first date" - start date
+		sDate = secSplit[0] # "second date" - end date
+
+		reportRange  = str(fDate) + "-" + str(sDate)
+		date = "Date Ran: " + str(today)
+
+		summary.writerow(' ')
+		summary.writerow(['Summary', 'Activity Dates:', reportRange, date])
 
 def calcBdays(filename):
 
@@ -147,20 +179,64 @@ def calcBdays(filename):
 	us_bd = CustomBusinessDay(calendar=USFederalHolidayCalendar())
 	return pd.DatetimeIndex(start=fDate,end=sDate, freq=us_bd).shape[0]
 
-def addFooter(outfile, summary, today, filename):
-	initSplit = filename.split("_")
-	secSplit = initSplit[3].split(".")
-	fDate = initSplit[2] # "first date" - start date
-	sDate = secSplit[0] # "second date" - end date
+def makeJobProg(jobProgress, today, filename):
 
-	reportRange  = "Activity Dates: " + str(fDate) + "-" + str(sDate)
-	date = "Date Ran: " + str(today)
+	recruiter = "No One"
+	job = "None"
+	iCount = 0
+	sCount = 0
 
-	outfile.writerow(' ')
-	outfile.writerow(['Overview', reportRange, date])
+	jobProgress.writerow(['Recruiter', 'Job', 'Number of Interviews', 'Number of Send-outs'])
+	with open('%s WorkableOverview.csv' %today, 'r') as parsedReport:
+		report = csv.reader(parsedReport)
+		next(report) # header
+		first = next(report) # first line
+		recruiter = first[0]
+		job = first[3]
+		if (first[1] == "Moved to stage Screened"):
+			iCount += 1
+		else:
+			sCount += 1		
+		for row in report:
+			if row[0] == " ":
+				jobProgress.writerow([recruiter, job, iCount, sCount])
+				break
+			elif row[0] == recruiter: # checking if recording for same recruiter
+				if row[3] == job: # checking if recording for same job
+					if (row[1] == "Moved to stage Screened"): # interview
+						iCount += 1
+					if row[1] == "Moved to stage Interview": # send-out
+						sCount +=1
+				else:
+					jobProgress.writerow([recruiter, job, iCount, sCount])
+					job = row[3]
+					if (row[1] == "Moved to stage Screened"):
+						iCount = 1
+						sCount = 0
+					else:
+						iCount = 0
+						sCount = 1
+			else:
+				jobProgress.writerow([recruiter, job, iCount, sCount])
+				recruiter = row[0]
+				job = row[3]
+				if (row[1] == "Moved to stage Screened"):
+					iCount = 1
+					sCount = 0
+				else:
+					iCount = 0
+					sCount = 1
 
-	summary.writerow(' ')
-	summary.writerow(['Summary', reportRange, date])	
+		initSplit = filename.split("_")
+		secSplit = initSplit[3].split(".")
+		fDate = initSplit[2] # "first date" - start date
+		sDate = secSplit[0] # "second date" - end date
+
+		reportRange  = str(fDate) + "-" + str(sDate)
+		date = "Date Ran: " + str(today)
+
+		jobProgress.writerow(' ')
+		jobProgress.writerow(['Job Progress', 'Actvity Dates: ', reportRange, date])		
 
 
 # Standard boilerplate to call the main() function to begin
