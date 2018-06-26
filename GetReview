@@ -6,6 +6,9 @@ import os
 import pandas as pd
 from pandas.tseries.holiday import USFederalHolidayCalendar
 from pandas.tseries.offsets import CustomBusinessDay
+import datetime
+
+# certain functions can be merged together or use the same helper functions. Same things are checked. 
 
 def main():
 
@@ -27,21 +30,27 @@ def main():
 			checkedHeader = checkCategories(header)
 			today = str(pd.datetime.today().date())
 			if checkedHeader != 0:
-				with open('%s WorkableOverview.csv' %today, 'w') as csvOutput, open('%s WorkableSummary.csv' %today, 'w') as csvSummary, open('%s WorkableJobProgress.csv' %today, 'w') as csvJobProgress:
+				with open('%s WorkableOverview.csv' %today, 'w') as csvOutput, open('%s WorkableSummary.csv' %today, 'w') as csvSummary, open('%s WorkableJobProgress.csv' %today, 'w') as csvJobProgress, open('%s WorkableGrowth.csv' %today, 'w') as csvGrowth:
 					outfile = csv.writer(csvOutput) # fully parsed report will end up here
 					summary = csv.writer(csvSummary)
 					jobProgress = csv.writer(csvJobProgress)
+					growth = csv.writer(csvGrowth)
 					trackInterviews(data, outfile)
 					trackSendouts(data, outfile)
 					csvOutput.close()
-					sortOut(checkedHeader, today, sys.argv[1])
+					sortOut(checkedHeader, today)
 					makeSummary(summary, sys.argv[1], today)
 					csvSummary.close()
 					makeJobProg(jobProgress, today, sys.argv[1])
 					csvJobProgress.close()
+					makeGrowth(growth, today)
+					csvGrowth.close()
+					reformatGrowth(today, sys.argv[1])
+					overviewFooter(checkedHeader, today, sys.argv[1])
 					os.system("./Format " + today + "\ WorkableOverview.csv")
 					os.system("./Format " + today + "\ WorkableSummary.csv")
 					os.system("./Format " + today + "\ WorkableJobProgress.csv")
+					os.system("./Format " + today + "\ WorkableGrowth.csv")
 					print "Full Review is in " + today + " WorkableOverview.csv. Summary is in " + today + " WorkableSummary.csv. Job Progress is in " + today + " WorkableJobProgress.csv. Formated files are in their .xlsx counterparts!" 
 	else:
 		sys.exit("ALERT: Usage Error - Incorrect file type. Run GetReview with [-h] for proper command syntax.")
@@ -96,7 +105,7 @@ def trackSendouts(report, outfile):
 				outfile.writerow(row)
 
 # sorts parsed_report.csv by recruiter and position
-def sortOut(checkedHeader, today, filename):
+def sortOut(checkedHeader, today):
 
 	with open('%s WorkableOverview.csv' %today, 'r') as csvOut:
 		reader = csv.reader(csvOut)
@@ -107,7 +116,21 @@ def sortOut(checkedHeader, today, filename):
 		outfile.writerow(checkedHeader) # writing categories
 		for row in sortedList:
 			outfile.writerow(row) # writing sorted list
+	csvOut.close()
 
+# needs modularization, flow between sortOut and overviewFooter needs to be reviewed		
+def overviewFooter(checkedHeader, today, filename):
+
+	with open('%s WorkableOverview.csv' %today, 'r') as csvOut:
+		reader = csv.reader(csvOut)
+		read = sorted(reader, key=lambda row: (row[0], row[3], row[4])) # sorting list
+	csvOut.close()
+
+	with open('%s WorkableOverview.csv' %today, 'w') as csvOutput:
+		outfile = csv.writer(csvOutput)
+		outfile.writerow(checkedHeader) # writing categories
+		for row in read:
+			outfile.writerow(row) # writing sorted list
 		initSplit = filename.split("_")
 		secSplit = initSplit[3].split(".")
 		fDate = initSplit[2] # "first date" - start date
@@ -117,9 +140,7 @@ def sortOut(checkedHeader, today, filename):
 		date = "Date Ran: " + str(today)
 
 		outfile.writerow(' ')
-		outfile.writerow(['Overview', reportRange, date])		
-
-
+		outfile.writerow(['Overview', reportRange, date])
 # writes summary file
 def makeSummary(summary, filename, today):
 
@@ -240,6 +261,140 @@ def makeJobProg(jobProgress, today, filename):
 
 		jobProgress.writerow(' ')
 		jobProgress.writerow(['Job Progress', reportRange, date])		
+
+def makeGrowth(growth, today):
+	recruiter = "No One"
+	iCount = 0
+	sCount = 0
+	week = 0
+	year = 0
+
+	
+	with open('%s WorkableOverview.csv' %today, 'r') as parsedReport:
+		report = csv.reader(parsedReport)
+		next(report) # header
+		sortedList = sorted(report, key=lambda row: (row[0], row[4])) # sorting by recruiter, time
+
+		first = sortedList[0]
+		recruiter = first[0]
+		if (first[1] == "Moved to stage Screened"):
+			iCount += 1
+		else:
+			sCount += 1		
+		date = first[4].split('-')
+		day = date[2].split('T')
+		week = datetime.date(int(date[0]), int(date[1]), int(day[0])).isocalendar()[1]
+		year = date[0]
+
+		for row in sortedList[1:len(sortedList)]:
+			if row[0] == " ":
+				calc = str(year) + "-W" + str(week)
+				weekdate = str(datetime.datetime.strptime(calc + '-1', "%Y-W%W-%w")).split(" ")[0]
+
+				growth.writerow([recruiter, weekdate, iCount, sCount])
+				break
+			elif row[0] == recruiter: # checking if recording for same recruiter
+				current_date = row[4].split('-')
+				current_day = current_date[2].split('T')
+				current_week = datetime.date(int(current_date[0]), int(current_date[1]), int(current_day[0])).isocalendar()[1]
+				if current_week == week: # checking if recording for same job
+					if (row[1] == "Moved to stage Screened"): # interview
+						iCount += 1
+					if row[1] == "Moved to stage Interview": # send-out
+						sCount +=1
+				else:
+					calc = str(year) + "-W" + str(week)
+					weekdate = str(datetime.datetime.strptime(calc + '-1', "%Y-W%W-%w")).split(" ")[0]
+
+					growth.writerow([recruiter, weekdate, iCount, sCount])
+					current_date = row[4].split('-')
+					current_day = current_date[2].split('T')
+					week = datetime.date(int(current_date[0]), int(current_date[1]), int(current_day[0])).isocalendar()[1]
+					if (row[1] == "Moved to stage Screened"):
+						iCount = 1
+						sCount = 0
+					else:
+						iCount = 0
+						sCount = 1
+			else:
+				calc = str(year) + "-W" + str(week)
+				weekdate = str(datetime.datetime.strptime(calc + '-1', "%Y-W%W-%w")).split(" ")[0]
+
+				growth.writerow([recruiter, weekdate, iCount, sCount])
+				recruiter = row[0]
+				current_date = row[4].split('-')
+				current_day = current_date[2].split('T')
+				week = datetime.date(int(current_date[0]), int(current_date[1]), int(current_day[0])).isocalendar()[1]
+				if (row[1] == "Moved to stage Screened"):
+					iCount = 1
+					sCount = 0
+				else:
+					iCount = 0
+					sCount = 1		
+
+
+def reformatGrowth(today, filename):
+
+	with open('%s WorkableGrowth.csv' %today, 'r') as csvGrowth:
+		reader = csv.reader(csvGrowth)
+		sortedList = sorted(reader, key=lambda row: (row[1])) # sorting list
+	csvGrowth.close()
+
+	weekList = ["Recruiter"]
+	for row in sortedList:
+		if row[1] != weekList[len(weekList)-1]:
+			weekList.append(str(row[1]))
+	numRows = len(sortedList) - 1
+	header = []
+	for i in range (0, len(weekList) - 1):
+		header.append(weekList[i])
+	header.append(weekList[i+1])
+	finalList = [header]
+	recruiter = sortedList[0][0]
+	finished = False
+	lineCounter = 0
+	recruiterList = []
+	while not finished:
+		current  = [recruiter]
+		for i in range (1, len(weekList)):
+			found = False
+			for j in range (0, len(sortedList)):
+
+				if recruiter == sortedList[j][0] and weekList[i] == sortedList[j][1]:
+
+					current.append(sortedList[j][2] + "|" + sortedList[j][3])
+					lineCounter += 1
+					found = True
+					break
+			if j == len(sortedList) - 1 and found == False:
+
+				current.append("0|0")
+		finalList.append(current)
+		recruiterList.append(recruiter)
+
+		for row in sortedList:
+			if row[0] not in recruiterList:
+				recruiter = row[0]
+				break
+
+		if lineCounter == len(sortedList):
+			finished = True
+	with open('%s WorkableGrowth.csv' %today, 'w') as csvGrowth:
+		growth = csv.writer(csvGrowth)
+		for row in finalList:
+			print row
+			growth.writerow(row) # writing sorted list
+
+		initSplit = filename.split("_")
+		secSplit = initSplit[3].split(".")
+		fDate = initSplit[2] # "first date" - start date
+		sDate = secSplit[0] # "second date" - end date
+
+		reportRange  = "Activity Dates: " + str(fDate) + "-" + str(sDate)
+		date = "Date Ran: " + str(today)
+
+		growth.writerow(' ')
+		growth.writerow(['Growth', reportRange, date])
 
 
 # Standard boilerplate to call the main() function to begin
