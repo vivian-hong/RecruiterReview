@@ -9,6 +9,8 @@ from pandas.tseries.offsets import CustomBusinessDay
 import datetime
 
 # certain functions can be merged together or use the same helper functions. Same things are checked. 
+# make more modular
+# update success statements in interface
 
 def main():
 
@@ -51,7 +53,7 @@ def main():
 					os.system("./Format " + today + "\ WorkableSummary.csv")
 					os.system("./Format " + today + "\ WorkableJobProgress.csv")
 					os.system("./Format " + today + "\ WorkableGrowth.csv")
-					print "Full Review is in " + today + " WorkableOverview.csv. Summary is in " + today + " WorkableSummary.csv. Job Progress is in " + today + " WorkableJobProgress.csv. Formated files are in their .xlsx counterparts!" 
+					print "Full Review is in " + today + " WorkableOverview.csv. Summary is in " + today + " WorkableSummary.csv. Job Progress report is in " + today + " WorkableJobProgress.csv. Growth report for recruiters is in " + today + " WorkableGrowth.csv. Formated files are in their .xlsx counterparts!" 
 	else:
 		sys.exit("ALERT: Usage Error - Incorrect file type. Run GetReview with [-h] for proper command syntax.")
 	sys.exit(0)
@@ -182,7 +184,7 @@ def makeSummary(summary, filename, today):
 				if row[1] == "Moved to stage Interview":
 					sCount =1
 					iCount = 0
-
+		summary.writerow([recruiter, iCount, sCount, round(iCount/float(bdays), 1), round(sCount/float(bdays), 1), bdays])
 		initSplit = filename.split("_")
 		secSplit = initSplit[3].split(".")
 		fDate = initSplit[2] # "first date" - start date
@@ -250,7 +252,7 @@ def makeJobProg(jobProgress, today, filename):
 				else:
 					iCount = 0
 					sCount = 1
-
+		jobProgress.writerow([recruiter, job, iCount, sCount])
 		initSplit = filename.split("_")
 		secSplit = initSplit[3].split(".")
 		fDate = initSplit[2] # "first date" - start date
@@ -331,7 +333,10 @@ def makeGrowth(growth, today):
 				else:
 					iCount = 0
 					sCount = 1		
+		#calc = str(year) + "-W" + str(week)
+		#weekdate = str(datetime.datetime.strptime(calc + '-1', "%Y-W%W-%w")).split(" ")[0]
 
+		#growth.writerow([recruiter, weekdate, iCount, sCount])	
 
 def reformatGrowth(today, filename):
 
